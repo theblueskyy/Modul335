@@ -1,10 +1,12 @@
 package ch.csbe.cynacam;
 
 import android.content.Context;
+import android.content.ContextWrapper;
 import android.content.pm.PackageManager;
 import android.graphics.Bitmap;
 import android.graphics.Canvas;
 import android.graphics.Matrix;
+import android.graphics.Rect;
 import android.graphics.drawable.BitmapDrawable;
 import android.location.Address;
 import android.location.Criteria;
@@ -12,6 +14,7 @@ import android.location.Geocoder;
 import android.location.Location;
 import android.location.LocationManager;
 import android.os.Bundle;
+import android.os.Environment;
 import android.support.v4.app.ActivityCompat;
 import android.support.v4.content.ContextCompat;
 import android.support.v7.app.AppCompatActivity;
@@ -20,10 +23,14 @@ import android.view.View;
 import android.widget.ImageView;
 import android.widget.TextView;
 
+import java.io.File;
+import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
+import java.io.IOException;
 import java.util.List;
 import java.util.Locale;
 
+import static ch.csbe.cynacam.R.id.TextView05;
 import static ch.csbe.cynacam.R.id.imageView2;
 import static ch.csbe.cynacam.R.id.imageView3;
 
@@ -42,6 +49,7 @@ public class SecondActivity extends AppCompatActivity {
     String cityname;
     ImageView test;
     ImageView template;
+    TextView text;
 
 
     @Override
@@ -51,10 +59,6 @@ public class SecondActivity extends AppCompatActivity {
         test = (ImageView) findViewById(imageView2);
         test.setImageBitmap(MainActivity.bitmap);
         locTextView=(TextView)findViewById(R.id.TextView05);
-
-
-
-
 
         if (ContextCompat.checkSelfPermission(this, android.Manifest.permission.ACCESS_COARSE_LOCATION) != PackageManager.PERMISSION_GRANTED)
         {
@@ -84,13 +88,7 @@ public class SecondActivity extends AppCompatActivity {
         }
     }
 
-    protected void showImage(View view){
-        test = (ImageView) findViewById(imageView3);
-        test.setImageResource(R.drawable.template1);
-        }
-
     protected void template(View view){
-        test = (ImageView) findViewById(imageView3);
         template = (ImageView) findViewById(imageView3);
 
         switch (view.getId()){
@@ -103,45 +101,68 @@ public class SecondActivity extends AppCompatActivity {
             case(R.id.imageView6):
                 template.setImageResource(R.drawable.template3);
                 break;
+            case(R.id.imageView7):
+                template.setImageResource(R.drawable.template4);
+                break;
+            case(R.id.imageView8):
+                template.setImageResource(R.drawable.template5);
+                break;
+            case(R.id.imageView9):
+                template.setImageResource(R.drawable.template6);
+                break;
         }
     }
 
-    protected void save(){
-        BitmapDrawable drawable1 = (BitmapDrawable) test.getDrawable();
-        Bitmap bitmap1 = drawable1.getBitmap();
-        BitmapDrawable drawable2 = (BitmapDrawable) template.getDrawable();
-        Bitmap bitmap2 = drawable2.getBitmap();
-        Bitmap bit = overlay(bitmap1, bitmap2);
-        saveImageToInternalStorage(bit);
+    private String saveToInternalStorage(Bitmap bitmapImage){
+        ContextWrapper cw = new ContextWrapper(getApplicationContext());
+       // File directory = cw.getDir("imageDir", Context.MODE_PRIVATE);
+        //File mypath=new File(directory,"profile.jpg");
+        File directory = Environment.getExternalStorageDirectory();
+        File mypath = new File(directory.getAbsolutePath()+"/DCIM/Camera/img2.jpg");
 
-    }
-
-    public boolean saveImageToInternalStorage(Bitmap image) {
-
+        ///DCIM/Camera/img.jpg
+        Log.d("Second", mypath.getAbsolutePath());
+        FileOutputStream fos = null;
         try {
-// Use the compress method on the Bitmap object to write image to
-// the OutputStream
-            FileOutputStream fos = SecondActivity.this.openFileOutput("desiredFilename.png", Context.MODE_PRIVATE);
-
-// Writing the bitmap to the output stream
-            image.compress(Bitmap.CompressFormat.PNG, 100, fos);
-            fos.close();
-
-            return true;
+            fos = new FileOutputStream(mypath);
+            // Use the compress method on the BitMap object to write image to the OutputStream
+            bitmapImage.compress(Bitmap.CompressFormat.PNG, 100, fos);
         } catch (Exception e) {
-            Log.e("saveToInternalStorage()", e.getMessage());
-            return false;
+            e.printStackTrace();
+        } finally {
+            try {
+                fos.close();
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
         }
+        return directory.getAbsolutePath();
     }
 
 
-    private Bitmap overlay(Bitmap bmap1, Bitmap bmap2) {
+    private Bitmap overlay(Bitmap bmap1, Bitmap bmap2, Bitmap bmap3) {
         Bitmap bmOverlay = Bitmap.createBitmap(bmap1.getWidth(), bmap1.getHeight(), bmap1.getConfig());
         Canvas canvas = new Canvas(bmOverlay);
         canvas.drawBitmap(bmap1, new Matrix(), null);
         canvas.drawBitmap(bmap2, new Matrix(), null);
+        canvas.drawBitmap(bmap3, new Matrix(), null);
         return bmOverlay;
     }
 
+    protected void save(View view){
+        Log.d("Second", "save method");
+        test = (ImageView) findViewById(imageView2);
+        template = (ImageView) findViewById(imageView3);
+        text = (TextView) findViewById(TextView05);
+        BitmapDrawable drawable1 = (BitmapDrawable) test.getDrawable();
+        Bitmap bitmap1 = drawable1.getBitmap();
+        BitmapDrawable drawable2 = (BitmapDrawable) template.getDrawable();
+        Bitmap bitmap2 = drawable2.getBitmap();
+        text.setDrawingCacheEnabled(true);
+        text.buildDrawingCache();
+        Bitmap bitmap3 = text.getDrawingCache();
+        Bitmap bit = overlay(bitmap1, bitmap2, bitmap3);
+        saveToInternalStorage(bit);
+    }
 }
 
