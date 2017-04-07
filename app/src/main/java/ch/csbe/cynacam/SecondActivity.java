@@ -1,12 +1,13 @@
 package ch.csbe.cynacam;
 
-import android.content.Context;
+import android.Manifest;
 import android.content.ContextWrapper;
 import android.content.pm.PackageManager;
 import android.graphics.Bitmap;
 import android.graphics.Canvas;
+import android.graphics.Color;
 import android.graphics.Matrix;
-import android.graphics.Rect;
+import android.graphics.Paint;
 import android.graphics.drawable.BitmapDrawable;
 import android.location.Address;
 import android.location.Criteria;
@@ -24,7 +25,6 @@ import android.widget.ImageView;
 import android.widget.TextView;
 
 import java.io.File;
-import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.util.List;
@@ -36,18 +36,19 @@ import static ch.csbe.cynacam.R.id.imageView3;
 
 
 /**
- * Created by cyrill.wagner on 24.03.2017.
+ * Controller of activity_second.xml
+ * @author Nana  Schütz & Cyrill Wagner
+ * @version 1.0
+ * @since   2017-03-22
  */
-
-
 public class SecondActivity extends AppCompatActivity {
 
     private static final int MY_PERMISSION_ACCESS_COARSE_LOCATION = 11;
-    private TextView locTextView; //Add a new TextView to your activity_main to display the address
+    private TextView locTextView;
     private LocationManager locationManager;
     private String provider;
     String cityname;
-    ImageView test;
+    ImageView picture;
     ImageView template;
     TextView text;
 
@@ -56,8 +57,8 @@ public class SecondActivity extends AppCompatActivity {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_second);
-        test = (ImageView) findViewById(imageView2);
-        test.setImageBitmap(MainActivity.bitmap);
+        picture = (ImageView) findViewById(imageView2);
+        picture.setImageBitmap(MainActivity.bitmap);
         locTextView=(TextView)findViewById(R.id.TextView05);
 
         if (ContextCompat.checkSelfPermission(this, android.Manifest.permission.ACCESS_COARSE_LOCATION) != PackageManager.PERMISSION_GRANTED)
@@ -72,7 +73,6 @@ public class SecondActivity extends AppCompatActivity {
         Location location=locationManager.getLastKnownLocation(locationManager.getBestProvider(criteria,true));
 
         Geocoder gcd=new Geocoder(getBaseContext(), Locale.getDefault());
-        Log.d("Tag","1");
         List<Address> addresses;
 
         try {
@@ -88,9 +88,13 @@ public class SecondActivity extends AppCompatActivity {
         }
     }
 
+    /**
+     * Puts templates picture into ImageView and changes if pressed on other template ImageView
+     * @param view This represents activity_second
+     * @return void
+     */
     protected void template(View view){
         template = (ImageView) findViewById(imageView3);
-
         switch (view.getId()){
             case(R.id.imageView4):
                 template.setImageResource(R.drawable.template1);
@@ -113,14 +117,19 @@ public class SecondActivity extends AppCompatActivity {
         }
     }
 
+    /**
+     * Saves parameter bitmapImage to internal storage
+     * @param bitmapImage This a Bitmap which is going to saved
+     * @return String
+     */
     private String saveToInternalStorage(Bitmap bitmapImage){
+        if (ContextCompat.checkSelfPermission(this, Manifest.permission.WRITE_EXTERNAL_STORAGE) != PackageManager.PERMISSION_GRANTED)
+        {
+            ActivityCompat.requestPermissions(this, new String[]{android.Manifest.permission.WRITE_EXTERNAL_STORAGE}, 1);
+        }
         ContextWrapper cw = new ContextWrapper(getApplicationContext());
-       // File directory = cw.getDir("imageDir", Context.MODE_PRIVATE);
-        //File mypath=new File(directory,"profile.jpg");
         File directory = Environment.getExternalStorageDirectory();
-        File mypath = new File(directory.getAbsolutePath()+"/DCIM/Camera/img2.jpg");
-
-        ///DCIM/Camera/img.jpg
+        File mypath = new File(directory.getAbsolutePath()+"/DCIM/Camera/img4.jpg");
         Log.d("Second", mypath.getAbsolutePath());
         FileOutputStream fos = null;
         try {
@@ -139,30 +148,65 @@ public class SecondActivity extends AppCompatActivity {
         return directory.getAbsolutePath();
     }
 
-
+    /**
+     * Overlays three Bitmaps(parameter)
+     * @param bmap1 This is the first Bitmap of the overlay
+     * @param bmap2 This is the second Bitmap of the overlay
+     * @param bmap3 This is the third Bitmap of the overlay
+     * @return Bitmap
+     */
     private Bitmap overlay(Bitmap bmap1, Bitmap bmap2, Bitmap bmap3) {
         Bitmap bmOverlay = Bitmap.createBitmap(bmap1.getWidth(), bmap1.getHeight(), bmap1.getConfig());
         Canvas canvas = new Canvas(bmOverlay);
-        canvas.drawBitmap(bmap1, new Matrix(), null);
-        canvas.drawBitmap(bmap2, new Matrix(), null);
-        canvas.drawBitmap(bmap3, new Matrix(), null);
+        Matrix m = new Matrix();
+        canvas.drawBitmap(bmap1, m , null);
+        Matrix m1 = new Matrix();
+        Bitmap workingBitmap = Bitmap.createBitmap(bmap2);
+        Bitmap mutableBitmap = workingBitmap.copy(Bitmap.Config.ARGB_8888, true);
+        mutableBitmap.setHeight(bmap1.getHeight());
+        mutableBitmap.setWidth(bmap1.getWidth());
+        canvas.drawBitmap(mutableBitmap, m1, null);
+        Matrix m2 = new Matrix();
+        workingBitmap = Bitmap.createBitmap(bmap3);
+        mutableBitmap = workingBitmap.copy(Bitmap.Config.ARGB_8888, true);
+        mutableBitmap.setHeight(50);
+        mutableBitmap.setWidth(100);
+        canvas.drawBitmap(mutableBitmap, m2, null);
+        Log.d("overlay", "save");
         return bmOverlay;
     }
 
+    /**
+     * Onclick activity of save button, calls saveToInternalStorage method
+     * @param view This represents activity_second
+     * @return void
+     */
     protected void save(View view){
         Log.d("Second", "save method");
-        test = (ImageView) findViewById(imageView2);
+        picture = (ImageView) findViewById(imageView2);
         template = (ImageView) findViewById(imageView3);
         text = (TextView) findViewById(TextView05);
-        BitmapDrawable drawable1 = (BitmapDrawable) test.getDrawable();
-        Bitmap bitmap1 = drawable1.getBitmap();
-        BitmapDrawable drawable2 = (BitmapDrawable) template.getDrawable();
-        Bitmap bitmap2 = drawable2.getBitmap();
-        text.setDrawingCacheEnabled(true);
-        text.buildDrawingCache();
-        Bitmap bitmap3 = text.getDrawingCache();
-        Bitmap bit = overlay(bitmap1, bitmap2, bitmap3);
-        saveToInternalStorage(bit);
+
+        Bitmap immutableBmp = ((BitmapDrawable) picture.getDrawable()).getBitmap();
+        Bitmap mutableBitmap = immutableBmp.copy(Bitmap.Config.ARGB_8888, true);
+
+        Canvas canvas = new Canvas(mutableBitmap);
+        Paint paint = new Paint();
+        paint.setColor(Color.WHITE);
+        paint.setStyle(Paint.Style.FILL);
+        canvas.drawPaint(paint);
+        canvas.drawBitmap(((BitmapDrawable) template.getDrawable()).getBitmap(),0,50,paint);
+
+        Bitmap launcher = ((BitmapDrawable) template.getDrawable()).getBitmap().copy(Bitmap.Config.ARGB_8888, true);
+        canvas.drawBitmap(launcher,0,10,paint);
+
+        paint.setColor(Color.BLACK);
+        paint.setTextSize(20);
+        canvas.drawText("Hallo Welt", 20,70, paint);
+
+        picture.setImageBitmap(mutableBitmap);
+        template.setImageBitmap(null);
+        text.setText("");
     }
 }
 
